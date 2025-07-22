@@ -89,3 +89,45 @@
                     ax.add_patch(ellipse)
             else:
                 print(f"[경고] PA[{idx}] 위도 또는 경도 누락")        
+
+        list_Short_traj_e = [] 
+        list_Short_traj_n = []
+        list_Early_traj_e = []
+        list_Early_traj_n = []
+        list_Late_traj_e = []
+        list_Late_traj_n = []
+
+        list_target_e = []
+        list_target_n = []
+
+        for i in range(128):
+            Short_e, Short_n = ep_result.Short_Traj[i].dLongitude, ep_result.Short_Traj[i].dLatitude
+            list_Short_traj_e.append(Short_e)
+            list_Short_traj_n.append(Short_n)
+
+            Early_e, Early_n = ep_result.Early_Traj[i].dLongitude, ep_result.Early_Traj[i].dLatitude
+            list_Early_traj_e.append(Early_e)
+            list_Early_traj_n.append(Early_n)
+
+            Late_e, Late_n = ep_result.Late_Traj[i].dLongitude, ep_result.Late_Traj[i].dLatitude
+            list_Late_traj_e.append(Late_e)
+            list_Late_traj_n.append(Late_n)
+
+            tgt_e, tgt_n = ep_result.Target_Traj[i].dLongitude, ep_result.Target_Traj[i].dLatitude
+            list_target_e.append(tgt_e)
+            list_target_n.append(tgt_n)
+
+        axes.plot(list_Short_traj_e, list_Short_traj_n, color='red')
+        axes.plot(list_Early_traj_e, list_Early_traj_n, color='green')
+        axes.plot(list_Late_traj_e, list_Late_traj_n, color='blue')
+        axes.plot(list_target_e, list_target_n, color='grey')
+
+        axes.scatter(ep_result.Short_LaunchPoint.dLongitude, ep_result.Short_LaunchPoint.dLatitude, color='red')
+        axes.scatter(ep_result.Early_LaunchPoint.dLongitude, ep_result.Early_LaunchPoint.dLatitude, color='green')
+        axes.scatter(ep_result.Late_LaunchPoint.dLongitude, ep_result.Late_LaunchPoint.dLatitude, color='blue')
+
+        axes.scatter(ep_result.Short_HitPoint.dLongitude, ep_result.Short_HitPoint.dLatitude, color='red')
+        axes.scatter(ep_result.Early_HitPoint.dLongitude, ep_result.Early_HitPoint.dLatitude, color='green')
+        axes.scatter(ep_result.Late_HitPoint.dLongitude, ep_result.Late_HitPoint.dLatitude, color='blue')
+
+        plt.show()
