@@ -1,103 +1,144 @@
-def plotSituation(self, textOut):
-        
-        tor_launch_angle, t, HIT_E, HIT_N = calculate_launch_angle(
-            self.env.PosList_tgtE[0], self.env.PosList_tgtN[0],
-            self.env.Target.CurCourse, self.env.Target.CurSpeed, self.env.Torpedo.CurSpeed
-        )
-        
-        t_values = np.linspace(0, t, 10)
-        ccm_tor_list_e = float(self.env.Torpedo.CurSpeed * np.sin(tor_launch_angle * DEG2RAD)) * t_values
-        ccm_tor_list_n = float(self.env.Torpedo.CurSpeed * np.cos(tor_launch_angle * DEG2RAD)) * t_values
-        
-        
-        fig, ax0 = plt.subplots(1, 1, figsize=(6, 6), 
-                               facecolor=self.color_config.get_color('background'))
-        ax0.set_facecolor(self.color_config.get_color('background'))
-        
-        
-        ax0.grid(color=self.color_config.get_color('grid'), alpha=0.7)
-        ax0.set_xlim([-1.0, 2.5])
-        ax0.set_ylim([-1.0, 2.5])
-        ax0.set_aspect('equal')
-        
-        
-        
-        
-        
-        ax0.tick_params(colors=self.color_config.get_color('axis_label'))
-        for spine in ax0.spines.values():
-            spine.set_color(self.color_config.get_color('axis_label'))
-        
-        
-        ax0.plot(ccm_tor_list_e, ccm_tor_list_n, 
-                label='CCM', 
-                color=self.color_config.get_color('torpedo_ccm_path'))
-        
-        
-        cmap = self.color_config.create_pa_colormap()
-        
-        circles = []
-        for pa in self.env.m_pa:
-            circle = plt.Circle((pa.E, pa.N), pa.Radius,
-                                facecolor=(1, 1, 1, 0),  
-                                edgecolor=self.color_config.get_color('pa_circle_edge'), 
-                                alpha=0.6)
-            ax0.add_artist(circle)
-            circles.append(circle)
-        
-        ax0.plot(self.env.PosList_tgtE[0], self.env.PosList_tgtN[0], 
-                'o', 
-                color=self.color_config.get_color('target_start'))
-        ax0.plot(self.env.PosList_torE[0], self.env.PosList_torN[0], 
-                'o', 
-                color=self.color_config.get_color('torpedo_start'))
-        
-        
-        target_line, = ax0.plot([], [], label='Target', 
-                               color=self.color_config.get_color('target_trajectory'))
-        torpedo_line, = ax0.plot([], [], label='Torpedo', 
-                                color=self.color_config.get_color('torpedo_trajectory'))
-        
-        
-        legend = ax0.legend()
-        legend.get_frame().set_facecolor(self.color_config.get_color('background'))
-        for text in legend.get_texts():
-            text.set_color(self.color_config.get_color('legend'))
+#include <iostream>
+#include <string>
+#include <memory>
+
+// 모든 무장 관리자가 구현해야 할 공통 인터페이스
+class IWeaponManager {
+public:
+    virtual ~IWeaponManager() = default;
+    virtual void setOwnShipInfo(const std::string& info) = 0;
+};
+
+// 기능별 인터페이스
+class ITargetAttacker {
+public:
+    virtual ~ITargetAttacker() = default;
+    virtual void setTarget(const std::string& target) = 0;
+};
+
+class IWaypointGuided {
+public:
+    virtual ~IWaypointGuided() = default;
+    virtual void void setWaypoint(const std::string& waypoint) = 0;
+};
+
+// -- 기능 컴포넌트 (실제 구현) --
+class EngagementCoreComponent {
+public:
+    void setOwnShipInfo(const std::string& info) {
+        std::cout << "Component: 우리 함정 정보 설정 - " << info << std::endl;
+    }
+};
 
 
+class TargetAttackComponent {
+public:
+    void setTarget(const std::string& target) {
+        std::cout << "Component: 목표물 설정 - " << target << std::endl;
+    }
+};
 
-        def update(frame):
-            
-            if frame < len(self.AttnList_PA):
-                weights = np.array(self.AttnList_PA[frame], dtype=np.float32)
-            else:
-                weights = np.zeros(len(self.env.m_pa), dtype=np.float32)
-            
-            weights = np.clip(weights, 0.0, 1.0)
-            max_w = np.max(weights)
-            if max_w > 0:
-                weights = weights / (max_w + 1e-8)
-            
-            
-            for idx, circle in enumerate(circles):
-                facecolor = cmap(weights[idx])
-                circle.set_facecolor(facecolor)
-            
-            target_line.set_data(self.env.PosList_tgtE[:frame], self.env.PosList_tgtN[:frame])
-            torpedo_line.set_data(self.env.PosList_torE[:frame], self.env.PosList_torN[:frame])
-            
-            return [target_line, torpedo_line] + circles
-        
-        total_frames = min(len(self.env.PosList_tgtE), len(self.env.PosList_torE), len(self.AttnList_PA))
-        ani = animation.FuncAnimation(
-            fig,
-            update,
-            frames=total_frames,
-            repeat=False
-        )
-        
-        secSinceAppStart = int(time.time() - g_AppStartTime)
-        filename = f'./output_plot_gif_paFix16/plot_{secSinceAppStart}.gif'
-        ani.save(filename, writer='imagemagick', fps=10)
-        plt.close()
-        return filename		
+class WaypointGuidedComponent {
+public:
+    void setWaypoint(const std::string& waypoint) {
+        std::cout << "Component: 경유지 설정 - " << waypoint << std::endl;
+    }
+};
+
+// -- 무장별 매니저 클래스 (인터페이스를 구현하고 컴포넌트를 소유) --
+
+class MissileEngagementManager : public IWeaponManager, public ITargetAttacker {
+private:
+    EngagementCoreComponent coreComponent_;
+    TargetAttackComponent targetComponent_;
+
+public:
+    void setOwnShipInfo(const std::string& info) override {
+        coreComponent_.setOwnShipInfo(info);
+    }
+    void setTarget(const std::string& target) override {
+        targetComponent_.setTarget(target);
+    }
+};
+
+
+class MineEngagementManager : public IWeaponManager, public IWaypointGuided {
+private:
+    EngagementCoreComponent coreComponent_;
+    WaypointGuidedComponent waypointComponent_;
+
+public:
+    void setOwnShipInfo(const std::string& info) override {
+        coreComponent_.setOwnShipInfo(info);
+    }
+    void setWaypoint(const std::string& waypoint) override {
+        waypointComponent_.setWaypoint(waypoint);
+    }
+};
+
+class TorpedoEngagementManager : public IWeaponManager, public ITargetAttacker, public IWaypointGuided {
+private:
+    EngagementCoreComponent coreComponent_;
+    TargetAttackComponent targetComponent_;
+    WaypointGuidedComponent waypointComponent_;
+
+public:
+    void setOwnShipInfo(const std::string& info) override {
+        coreComponent_.setOwnShipInfo(info);
+    }
+    void setTarget(const std::string& target) override {
+        targetComponent_.setTarget(target);
+    }
+    void setWaypoint(const std::string& waypoint) override {
+        waypointComponent_.setWaypoint(waypoint);
+    }
+};
+
+
+// 팩토리 클래스 (변경 없음)
+enum class WeaponType { MISSILE, MINE, TORPEDO };
+
+class WeaponFactory {
+public:
+    static std::unique_ptr<IWeaponManager> createManager(WeaponType type) {
+        switch (type) {
+        case WeaponType::MISSILE:
+            return std::make_unique<MissileEngagementManager>();
+        case WeaponType::MINE:
+            return std::make_unique<MineEngagementManager>();
+        case WeaponType::TORPEDO:
+            return std::make_unique<TorpedoEngagementManager>();
+        default: return nullptr;
+        }
+    }
+};
+
+// --- 클라이언트 코드 ---
+int main() {
+    auto missileManager = WeaponFactory::createManager(WeaponType::MISSILE);
+    std::cout << "--- 미사일 매니저 시동 ---" << std::endl;
+    missileManager->setOwnShipInfo("미사일 발사함");
+    if (auto targetWeapon = dynamic_cast<ITargetAttacker*>(missileManager.get())) {
+        targetWeapon->setTarget("적 잠수함");
+    }
+
+    std::cout << "\n--- 자항기뢰 매니저 시동 ---" << std::endl;
+    auto mineManager = WeaponFactory::createManager(WeaponType::MINE);
+    mineManager->setOwnShipInfo("기뢰 부설함");
+    if (auto waypointWeapon = dynamic_cast<IWaypointGuided*>(mineManager.get())) {
+        waypointWeapon->setWaypoint("경유지 1, 경유지 2");
+    }
+
+    std::cout << "\n--- 선유도어뢰 매니저 시동 ---" << std::endl;
+    auto torpedoManager = WeaponFactory::createManager(WeaponType::TORPEDO);
+    torpedoManager->setOwnShipInfo("어뢰 발사관");
+    if (auto targetWeapon = dynamic_cast<ITargetAttacker*>(torpedoManager.get())) {
+        targetWeapon->setTarget("적 수상함");
+    }
+    if (auto waypointWeapon = dynamic_cast<IWaypointGuided*>(torpedoManager.get())) {
+        waypointWeapon->setWaypoint("어뢰 경로점");
+    }
+
+    return 0;
+}
+
